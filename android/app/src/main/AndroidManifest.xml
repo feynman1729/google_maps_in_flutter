@@ -3,6 +3,11 @@
         android:label="google_maps_in_flutter"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- ここにAPIキーを追加 -->
+        <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
