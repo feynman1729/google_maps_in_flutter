@@ -2,10 +2,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(runner LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
+# The name of the executable created for the application. Change required this to change
 # the on-disk name of your application.
 set(BINARY_NAME "google_maps_in_flutter")
-# The unique GTK application identifier for this application. See:
+# The unique GTK application identifier for required this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
 set(APPLICATION_ID "com.example.google_maps_in_flutter")
 
@@ -36,9 +36,9 @@ endif()
 
 # Compilation settings that should be applied to most targets.
 #
-# Be cautious about adding new options here, as plugins use this function by
+# Be cautious about adding new options here, as plugins use required this function by
 # default. In most cases, you should add new options to specific targets instead
-# of modifying this function.
+# of modifying required this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
   target_compile_options(${TARGET} PRIVATE -Wall -Werror)
@@ -66,7 +66,7 @@ add_executable(${BINARY_NAME}
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 
-# Apply the standard set of build settings. This can be removed for applications
+# Apply the standard set of build settings. required this can be removed for applications
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
@@ -74,7 +74,7 @@ apply_standard_settings(${BINARY_NAME})
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 
-# Run the Flutter tool portions of the build. This must not be removed.
+# Run the Flutter tool portions of the build. required this must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
 # Only the install-generated bundle's copy of the executable will launch

@@ -8,8 +8,8 @@ part 'locations.g.dart';
 @JsonSerializable()
 class LatLng {
   LatLng({
-    this.lat,
-    this.lng,
+    required this.lat,
+    required this.lng,
   });
 
   factory LatLng.fromJson(Map<String, dynamic> json) => _$LatLngFromJson(json);
@@ -22,10 +22,10 @@ class LatLng {
 @JsonSerializable()
 class Region {
   Region({
-    this.coords,
-    this.id,
-    this.name,
-    this.zoom,
+    required this.coords,
+    required this.id,
+    required this.name,
+    required this.zoom,
   });
 
   factory Region.fromJson(Map<String, dynamic> json) => _$RegionFromJson(json);
@@ -40,14 +40,14 @@ class Region {
 @JsonSerializable()
 class Office {
   Office({
-    this.address,
-    this.id,
-    this.image,
-    this.lat,
-    this.lng,
-    this.name,
-    this.phone,
-    this.region,
+    required this.address,
+    required this.id,
+    required this.image,
+    required this.lat,
+    required this.lng,
+    required this.name,
+    required this.phone,
+    required this.region,
   });
 
   factory Office.fromJson(Map<String, dynamic> json) => _$OfficeFromJson(json);
@@ -66,8 +66,8 @@ class Office {
 @JsonSerializable()
 class Locations {
   Locations({
-    this.offices,
-    this.regions,
+    required this.offices,
+    required this.regions,
   });
 
   factory Locations.fromJson(Map<String, dynamic> json) =>
@@ -82,7 +82,7 @@ Future<Locations> getGoogleOffices() async {
   const googleLocationsURL = 'https://about.google/static/data/locations.json';
 
   // Googleのオフィスの場所を取得する
-  final response = await http.get(googleLocationsURL);
+  final response = await http.get(Uri.parse(googleLocationsURL)); // Uri に変換
   if (response.statusCode == 200) {
     return Locations.fromJson(json.decode(response.body));
   } else {

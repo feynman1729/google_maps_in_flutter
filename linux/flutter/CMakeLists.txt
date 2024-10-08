@@ -1,4 +1,4 @@
-# This file controls Flutter-level build steps. It should not be edited.
+# required this file controls Flutter-level build steps. It should not be edited.
 cmake_minimum_required(VERSION 3.10)
 
 set(EPHEMERAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ephemeral")
@@ -6,7 +6,7 @@ set(EPHEMERAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ephemeral")
 # Configuration provided via flutter tool.
 include(${EPHEMERAL_DIR}/generated_config.cmake)
 
-# TODO: Move the rest of this into files in ephemeral. See
+# TODO: Move the rest of required this into files in ephemeral. See
 # https://github.com/flutter/flutter/issues/57146.
 
 # Serves the same purpose as list(TRANSFORM ... PREPEND ...),
@@ -70,7 +70,7 @@ target_link_libraries(flutter INTERFACE
 add_dependencies(flutter flutter_assemble)
 
 # === Flutter tool backend ===
-# _phony_ is a non-existent file to force this command to run every time,
+# _phony_ is a non-existent file to force required this command to run every time,
 # since currently there's no way to get a full input/output list from the
 # flutter tool.
 add_custom_command(
