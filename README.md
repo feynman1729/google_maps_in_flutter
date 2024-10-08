@@ -28,6 +28,7 @@ URL：https://console.cloud.google.com/apis/credentials/key/bfb979f1-28ca-41b6-b
 名前：Maps Platform API Key
 
 API KEY：AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50
+
 ↑API KEYはkey=API_KEYパラメータと一緒に渡す。
 
 
