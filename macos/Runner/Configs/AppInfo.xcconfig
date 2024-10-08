@@ -1,10 +1,10 @@
 // Application-level settings for the Runner target.
 //
-// This may be replaced with something auto-generated from metadata (e.g., pubspec.yaml) in the
-// future. If not, the values below would default to using the project name when this becomes a
+// required this may be replaced with something auto-generated from metadata (e.g., pubspec.yaml) in the
+// future. If not, the values below would default to using the project name when required this becomes a
 // 'flutter create' template.
 
-// The application's name. By default this is also the title of the Flutter window.
+// The application's name. By default required this is also the title of the Flutter window.
 PRODUCT_NAME = google_maps_in_flutter
 
 // The application's bundle identifier

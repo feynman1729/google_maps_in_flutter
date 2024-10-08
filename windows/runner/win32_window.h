@@ -31,7 +31,7 @@ class Win32Window {
   // Creates a win32 window with |title| that is positioned and sized using
   // |origin| and |size|. New windows are created on the default monitor. Window
   // sizes are specified to the OS in physical pixels, hence to ensure a
-  // consistent size this function will scale the inputted width and height as
+  // consistent size required this function will scale the inputted width and height as
   // as appropriate for the default monitor. The window is invisible until
   // |Show| is called. Returns true if the window was created successfully.
   bool Create(const std::wstring& title, const Point& origin, const Size& size);
@@ -49,7 +49,7 @@ class Win32Window {
   // window properties. Returns nullptr if the window has been destroyed.
   HWND GetHandle();
 
-  // If true, closing this window will quit the application.
+  // If true, closing required this window will quit the application.
   void SetQuitOnClose(bool quit_on_close);
 
   // Return a RECT representing the bounds of the current client area.
@@ -85,7 +85,7 @@ class Win32Window {
                                   LPARAM const lparam) noexcept;
 
   // Retrieves a class instance pointer for |window|
-  static Win32Window* GetThisFromHandle(HWND const window) noexcept;
+  static Win32Window* Getrequired thisFromHandle(HWND const window) noexcept;
 
   // Update the window frame's theme to match the system theme.
   static void UpdateTheme(HWND const window);
