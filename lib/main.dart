@@ -23,19 +23,17 @@ class MapSampleState extends State<MapSample> {
   final TextEditingController startController = TextEditingController();
   final TextEditingController endController = TextEditingController();
   late GoogleMapController _mapController;
-  final Set<Polyline> _polylines = {};
+  final Set<Polyline> _polylines = {}; // 複数のルートを保持するポリラインセット
   final LatLng _initialPosition = LatLng(33.5903,
       130.4017); // 初期位置（緯度33.5903, 経度130.4017: 福岡）を_initialPositionとして定義
+  int routeCount = 0; // ルートの本数を保持する変数
 
   @override
   Widget build(BuildContext context) {
-    // アプリのUIを構築
     return Scaffold(
-      // アプリバーを表示
       appBar: AppBar(
-        title: const Text('Google Maps Directions'),
+        title: const Text('Google Maps Multiple Routes'),
       ),
-      // アプリのボディには、テキストフィールドとGoogleMapウィジェットを表示
       body: Column(
         children: [
           Padding(
@@ -62,12 +60,13 @@ class MapSampleState extends State<MapSample> {
               ],
             ),
           ),
+          Text('返されたルートの本数: $routeCount'), // ルート本数を表示
           Expanded(
             child: GoogleMap(
               onMapCreated: _onMapCreated,
               initialCameraPosition: CameraPosition(
                 target: _initialPosition,
-                zoom: 7,
+                zoom: 13,
               ),
               polylines: _polylines,
             ),
@@ -88,36 +87,43 @@ class MapSampleState extends State<MapSample> {
     if (start.isEmpty || end.isEmpty) {
       return; // 空の入力を無視
     }
-    await _getDirections(start, end); // Directions APIを呼び出してルートを取得
+    await _getMultipleRoutes(start, end); // Directions APIを呼び出して複数ルートを取得
   }
 
-  // Google Directions APIを使ってルートを取得し、ポリラインを描画
-  Future<void> _getDirections(String origin, String destination) async {
+  // Google Directions APIを使って複数のルートを取得し、ポリラインを描画
+  Future<void> _getMultipleRoutes(String origin, String destination) async {
     const String apiKey = 'AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50'; // APIキーを追加
     final String url =
-        'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$destination&mode=driving&key=$apiKey';
+        'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$destination&mode=driving&alternatives=true&key=$apiKey';
 
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
       if (data['routes'].isNotEmpty) {
-        final points =
-            _decodePolyline(data['routes'][0]['overview_polyline']['points']);
-
         setState(() {
-          _polylines.clear();
-          _polylines.add(Polyline(
-            polylineId: PolylineId('directions'),
-            points: points,
-            color: Colors.blue,
-            width: 5,
-          ));
+          _polylines.clear(); // 既存のポリラインをクリア
 
-          // カメラをルートに合わせてズーム
+          // ルートの本数を設定
+          routeCount = data['routes'].length; // ルート本数を取得して設定
+
+          // 各ルートをポリラインとして追加
+          for (int i = 0; i < data['routes'].length; i++) {
+            final points = _decodePolyline(
+                data['routes'][i]['overview_polyline']['points']);
+            _polylines.add(Polyline(
+              polylineId: PolylineId('route_$i'),
+              points: points,
+              color: _getColorForRoute(i), // 各ルートに異なる色を設定
+              width: 5,
+            ));
+          }
+
+          // 最初のルートに基づいてカメラ位置を調整
           _mapController.animateCamera(
             CameraUpdate.newLatLngBounds(
-              _getBounds(points),
+              _getBounds(_decodePolyline(
+                  data['routes'][0]['overview_polyline']['points'])),
               50, // パディング
             ),
           );
@@ -174,5 +180,23 @@ class MapSampleState extends State<MapSample> {
       southwest: LatLng(southWestLat, southWestLng),
       northeast: LatLng(northEastLat, northEastLng),
     );
+  }
+
+  // ルートに異なる色を割り当てる関数
+  Color _getColorForRoute(int index) {
+    // 異なる色を10個まで設定する
+    final List<Color> routeColors = [
+      Colors.blue,
+      Colors.green,
+      Colors.red,
+      Colors.orange,
+      Colors.purple,
+      Colors.pink,
+      Colors.yellow,
+      Colors.cyan,
+      Colors.brown,
+      Colors.teal,
+    ];
+    return routeColors[index % routeColors.length]; // ルート数に応じて色を繰り返す
   }
 }
