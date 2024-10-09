@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'dart:math';
 
 void main() => runApp(MyApp());
 
@@ -20,19 +21,16 @@ class MapSample extends StatefulWidget {
 }
 
 class MapSampleState extends State<MapSample> {
-  final TextEditingController startController = TextEditingController();
-  final TextEditingController endController = TextEditingController();
   late GoogleMapController _mapController;
-  final Set<Polyline> _polylines = {}; // 複数のルートを保持するポリラインセット
-  final LatLng _initialPosition = LatLng(33.5903,
-      130.4017); // 初期位置（緯度33.5903, 経度130.4017: 福岡）を_initialPositionとして定義
-  int routeCount = 0; // ルートの本数を保持する変数
+  final Set<Polyline> _polylines = {};
+  final Map<String, Marker> _markers = {};
+  final LatLng _initialPosition = LatLng(33.5903, 130.4017); // 福岡
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Google Maps Multiple Routes'),
+        title: const Text('Google Maps Directions'),
       ),
       body: Column(
         children: [
@@ -60,14 +58,14 @@ class MapSampleState extends State<MapSample> {
               ],
             ),
           ),
-          Text('返されたルートの本数: $routeCount'), // ルート本数を表示
           Expanded(
             child: GoogleMap(
               onMapCreated: _onMapCreated,
               initialCameraPosition: CameraPosition(
                 target: _initialPosition,
-                zoom: 13,
+                zoom: 14.0,
               ),
+              markers: _markers.values.toSet(),
               polylines: _polylines,
             ),
           ),
@@ -78,6 +76,25 @@ class MapSampleState extends State<MapSample> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    _loadMarkers();
+  }
+
+  Future<void> _loadMarkers() async {
+    final googleOffices = await locations.getGoogleOffices();
+    setState(() {
+      _markers.clear();
+      for (final office in googleOffices.offices) {
+        final marker = Marker(
+          markerId: MarkerId(office.name),
+          position: LatLng(office.lat, office.lng),
+          infoWindow: InfoWindow(
+            title: office.name,
+            snippet: office.address,
+          ),
+        );
+        _markers[office.name] = marker;
+      }
+    });
   }
 
   // ルート検索ボタンを押した時の処理
@@ -87,43 +104,35 @@ class MapSampleState extends State<MapSample> {
     if (start.isEmpty || end.isEmpty) {
       return; // 空の入力を無視
     }
-    await _getMultipleRoutes(start, end); // Directions APIを呼び出して複数ルートを取得
+    await _getDirections(start, end); // Directions APIを呼び出してルートを取得
   }
 
-  // Google Directions APIを使って複数のルートを取得し、ポリラインを描画
-  Future<void> _getMultipleRoutes(String origin, String destination) async {
-    const String apiKey = 'AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50'; // APIキーを追加
+  // Google Directions APIを使ってルートを取得し、ポリラインを描画
+  Future<void> _getDirections(String origin, String destination) async {
+    const String apiKey = 'AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50'; // APIキー
     final String url =
-        'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$destination&mode=driving&alternatives=true&key=$apiKey';
+        'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$destination&mode=walking&alternatives=true&key=$apiKey';
 
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-
       if (data['routes'].isNotEmpty) {
+        final points =
+            _decodePolyline(data['routes'][0]['overview_polyline']['points']);
+
         setState(() {
-          _polylines.clear(); // 既存のポリラインをクリア
+          _polylines.clear();
+          _polylines.add(Polyline(
+            polylineId: PolylineId('directions'),
+            points: points,
+            color: Colors.blue,
+            width: 5,
+          ));
 
-          // ルートの本数を設定
-          routeCount = data['routes'].length; // ルート本数を取得して設定
-
-          // 各ルートをポリラインとして追加
-          for (int i = 0; i < data['routes'].length; i++) {
-            final points = _decodePolyline(
-                data['routes'][i]['overview_polyline']['points']);
-            _polylines.add(Polyline(
-              polylineId: PolylineId('route_$i'),
-              points: points,
-              color: _getColorForRoute(i), // 各ルートに異なる色を設定
-              width: 5,
-            ));
-          }
-
-          // 最初のルートに基づいてカメラ位置を調整
+          // カメラをルートに合わせてズーム
           _mapController.animateCamera(
             CameraUpdate.newLatLngBounds(
-              _getBounds(_decodePolyline(
-                  data['routes'][0]['overview_polyline']['points'])),
+              _getBounds(points),
               50, // パディング
             ),
           );
@@ -134,7 +143,60 @@ class MapSampleState extends State<MapSample> {
     }
   }
 
-  // エンコードされたポリラインをデコード
+  // Google Elevation APIを使用して標高を取得し、勾配を計算
+  Future<void> _calculateGradient() async {
+    if (_routePoints.isEmpty) return;
+
+    final String path = _routePoints
+        .map((point) => '${point.latitude},${point.longitude}')
+        .join('|');
+    final String elevationUrl =
+        'https://maps.googleapis.com/maps/api/elevation/json?path=$path&samples=${_routePoints.length}&key=$apiKey';
+
+    final elevationResponse = await http.get(Uri.parse(elevationUrl));
+    if (elevationResponse.statusCode == 200) {
+      final elevationData = json.decode(elevationResponse.body);
+      if (elevationData['results'].isNotEmpty) {
+        double totalGradient = 0.0;
+
+        // ルート全体の勾配を計算
+        for (int i = 1; i < elevationData['results'].length; i++) {
+          final elevation1 = elevationData['results'][i - 1]['elevation'];
+          final elevation2 = elevationData['results'][i]['elevation'];
+          final distance =
+              _calculateDistance(_routePoints[i - 1], _routePoints[i]);
+
+          final gradient = ((elevation2 - elevation1) / distance) * 100;
+          totalGradient += gradient;
+        }
+
+        final averageGradient = totalGradient / (_routePoints.length - 1);
+        print('平均勾配: $averageGradient%');
+      }
+    }
+  }
+
+  // 2地点間の距離を計算（Haversine Formula）
+  double _calculateDistance(LatLng point1, LatLng point2) {
+    const double earthRadius = 6371; // 地球の半径（キロメートル）
+    final double dLat = _degreesToRadians(point2.latitude - point1.latitude);
+    final double dLng = _degreesToRadians(point2.longitude - point1.longitude);
+
+    final double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(point1.latitude)) *
+            cos(_degreesToRadians(point2.latitude)) *
+            sin(dLng / 2) *
+            sin(dLng / 2);
+
+    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  // Google Directions APIから返されたエンコードされたポリラインをデコード
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> points = [];
     int index = 0, len = encoded.length;
@@ -180,23 +242,5 @@ class MapSampleState extends State<MapSample> {
       southwest: LatLng(southWestLat, southWestLng),
       northeast: LatLng(northEastLat, northEastLng),
     );
-  }
-
-  // ルートに異なる色を割り当てる関数
-  Color _getColorForRoute(int index) {
-    // 異なる色を10個まで設定する
-    final List<Color> routeColors = [
-      Colors.blue,
-      Colors.green,
-      Colors.red,
-      Colors.orange,
-      Colors.purple,
-      Colors.pink,
-      Colors.yellow,
-      Colors.cyan,
-      Colors.brown,
-      Colors.teal,
-    ];
-    return routeColors[index % routeColors.length]; // ルート数に応じて色を繰り返す
   }
 }
