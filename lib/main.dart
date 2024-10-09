@@ -27,6 +27,13 @@ class MapSampleState extends State<MapSample> {
   final Map<String, Marker> _markers = {};
   final LatLng _initialPosition = LatLng(33.5903, 130.4017); // 福岡
 
+  // ここで TextEditingController を追加
+  final TextEditingController startController = TextEditingController();
+  final TextEditingController endController = TextEditingController();
+
+  // ルートのポイントを保持するリストを追加
+  final List<LatLng> _routePoints = [];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +117,8 @@ class MapSampleState extends State<MapSample> {
 
   // Google Directions APIを使ってルートを取得し、ポリラインを描画
   Future<void> _getDirections(String origin, String destination) async {
-    const String apiKey = 'AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50'; // APIキー
+    const String apiKey =
+        'AIzaSyApsx2TXanoD2FbmzLcCfqajqlEPA__B50'; // APIキーを適宜設定
     final String url =
         'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$destination&mode=walking&alternatives=true&key=$apiKey';
 
@@ -122,6 +130,9 @@ class MapSampleState extends State<MapSample> {
             _decodePolyline(data['routes'][0]['overview_polyline']['points']);
 
         setState(() {
+          _routePoints.clear(); // ルートのポイントをリセット
+          _routePoints.addAll(points); // ルートのポイントを保存
+
           _polylines.clear();
           _polylines.add(Polyline(
             polylineId: PolylineId('directions'),
@@ -152,7 +163,7 @@ class MapSampleState extends State<MapSample> {
         .map((point) => '${point.latitude},${point.longitude}')
         .join('|');
     final String elevationUrl =
-        'https://maps.googleapis.com/maps/api/elevation/json?path=$path&samples=${_routePoints.length}&key=$apiKey';
+        'https://maps.googleapis.com/maps/api/elevation/json?path=$path&samples=${_routePoints.length}&key=YOUR_API_KEY';
 
     final elevationResponse = await http.get(Uri.parse(elevationUrl));
     if (elevationResponse.statusCode == 200) {
